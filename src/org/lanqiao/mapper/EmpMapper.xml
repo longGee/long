@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.lanqiao.mapper.EmpMapper">
+	
+	<!-- 开启二级缓存 -->
+	<cache></cache>
+	
+	<select id="empList" resultType="emp">
+		select * from emp
+	</select>
+	
+	<select id="get" resultType="empvo" parameterType="java.lang.Integer">
+		<!-- select * from emp where empno = #{empno} -->
+		select e.*,dname,loc from emp e,dept d where e.deptno=d.deptno and e.empno=#{empno}
+	</select>
+	
+	<!-- 如果属性是一个对象:mybatis不能直接映射成对象（需要手动配置） -->
+	<resultMap type="emp" id="empResult">
+		<!-- 配置表中属性与类中属性映射关系 -->
+		<id column="empno" property="empno"/>
+		<result column="ename" property="ename"></result>
+		<result column="job" property="job"></result>
+		<result column="mgr" property="mgr"></result>
+		<result column="hiredate" property="hiredate"></result>
+		<result column="sal" property="sal"></result>
+		<result column="comm" property="comm"></result>
+		<!-- 配置dept映射 column:外键列 -->
+		<association property="dept" column="deptno" javaType="org.lanqiao.entity.Dept">
+			<id column="deptno" property="deptno"/>
+			<result column="dname" property="dname"></result>
+			<result column="loc" property="loc"></result>
+		</association>
+	</resultMap>
+	<!-- ====================================== -->
+	<resultMap type="org.lanqiao.entity.Emp" id="empResultMap">
+		<association property="dept" column="deptno" javaType="org.lanqiao.entity.Dept" select="org.lanqiao.mapper.DeptMapper.get">
+			
+		</association>
+	</resultMap>
+	<select id="getEmpByID" resultMap="empResultMap" parameterType="java.lang.Integer">
+		<!-- 嵌套结果实现 -->
+		<!-- select e.*,dname,loc from emp e,dept d where e.deptno=d.deptno and e.empno=#{empno} -->
+		<!-- 嵌套查询实现  将多表查询变成单表查询  （一对多）-->
+		<!-- select * from emp where empno=#{empno} -->
+		
+		<!-- 多对多 -->
+		select * from emp where deptno=#{deptno}
+	</select>
+
+
+	<!-- 动态Sql -->
+	<select id="search" parameterType="empvo" resultType="emp">
+		select * from emp 
+		<where>
+			<!-- 根据部门编号过滤 -->
+			<!-- 方式1 -->
+			<!-- <if test="dept!=null and dept.deptno!=null">
+				and deptno=#{dept.deptno}
+			</if>
+			<if test="sal!=null">
+				and sal>=1000
+			</if>
+			<if test="job!=null">
+				and job=#{job}
+			</if> -->
+			<!-- 方式2 -->
+			<choose>
+			<!-- 只能满足一个条件 -->
+				<!-- <when test="dept!=null and dept.deptno!=null">and deptno=#{dept.deptno}</when> -->
+				<when test="sal!=null">and sal>=1000</when>
+				<when test="job!=null">and job=#{job}</when>
+				<otherwise></otherwise>
+			</choose>
+		</where>
+	</select>
+	
+	<select id="getList" resultType="emp">
+		select * from emp where empno in
+		<!-- list:List、Array、名称为list(固定) -->
+		<include refid="foreashcondition"></include>
+	</select>
+	<!-- sql片段 -->
+	<sql id="foreashcondition">
+		<foreach collection="list" item="empno" open="(" close=")" separator=",">
+			#{empno}
+		</foreach>
+	</sql>
+
+</mapper>
